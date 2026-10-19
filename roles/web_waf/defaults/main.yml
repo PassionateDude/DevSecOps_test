@@ -1,0 +1,12 @@
+---
+waf_dir: /opt/waf
+app_port: 80
+
+waf_image: owasp/modsecurity-crs:nginx-alpine
+app_image: nginx:alpine
+alloy_image: grafana/alloy:latest
+
+waf_paranoia: 1
+waf_anomaly_threshold: 5
+
+loki_push_url: http://10.10.0.1:3100/loki/api/v1/push

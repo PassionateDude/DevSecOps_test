@@ -1,0 +1,20 @@
+// Managed by Ansible - do not edit by hand
+
+local.file_match "web" {
+  path_targets = [
+    {"__path__" = "/var/log/nginx/access.log",      "job" = "nginx",       "type" = "access", "host" = "{{ inventory_hostname }}"},
+    {"__path__" = "/var/log/nginx/error.log",       "job" = "nginx",       "type" = "error",  "host" = "{{ inventory_hostname }}"},
+    {"__path__" = "/var/log/modsecurity/audit.log", "job" = "modsecurity", "type" = "audit",  "host" = "{{ inventory_hostname }}"},
+  ]
+}
+
+loki.source.file "web" {
+  targets    = local.file_match.web.targets
+  forward_to = [loki.write.ubu2.receiver]
+}
+
+loki.write "ubu2" {
+  endpoint {
+    url = "{{ loki_push_url }}"
+  }
+}

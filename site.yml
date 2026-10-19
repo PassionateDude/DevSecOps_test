@@ -1,0 +1,7 @@
+---
+- name: Configure web server ubu1
+  hosts: web
+  become: true
+  roles:
+    - docker
+    - web_waf

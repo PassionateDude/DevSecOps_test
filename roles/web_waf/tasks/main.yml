@@ -1,0 +1,53 @@
+---
+- name: Create log directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "101"
+    group: "101"
+    mode: "0755"
+  loop:
+    - /var/log/nginx
+    - /var/log/modsecurity
+
+- name: Create project directory
+  ansible.builtin.file:
+    path: "{{ waf_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Render docker-compose.yml from template
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ waf_dir }}/docker-compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Recreate WAF stack
+
+- name: Render Alloy config from template
+  ansible.builtin.template:
+    src: config.alloy.j2
+    dest: "{{ waf_dir }}/config.alloy"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Recreate WAF stack
+
+- name: Copy website files
+  ansible.builtin.copy:
+    src: site/
+    dest: "{{ waf_dir }}/site/"
+    owner: root
+    group: root
+    mode: "0644"
+    directory_mode: "0755"
+
+- name: Start WAF stack
+  ansible.builtin.command: docker compose up -d
+  args:
+    chdir: "{{ waf_dir }}"
+  register: compose_up
+  changed_when: "'Started' in compose_up.stderr or 'Recreated' in compose_up.stderr"

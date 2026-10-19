@@ -1,0 +1,49 @@
+# Managed by Ansible - do not edit
+services:
+  app:
+    image: {{ app_image }}
+    container_name: app
+    restart: unless-stopped
+    volumes:
+      - ./site:/usr/share/nginx/html:ro
+
+  waf:
+    image: {{ waf_image }}
+    container_name: waf
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:8080"
+    environment:
+      BACKEND: "http://app:{{ app_port }}"
+      BLOCKING_PARANOIA: "{{ waf_paranoia }}"
+      ANOMALY_INBOUND: "{{ waf_anomaly_threshold }}"
+      MODSEC_RULE_ENGINE: "On"
+      MODSEC_AUDIT_LOG: "/var/log/modsecurity/audit.log"
+      MODSEC_AUDIT_LOG_FORMAT: "JSON"
+      ACCESSLOG: "/var/log/nginx/access.log"
+      ERRORLOG: "/var/log/nginx/error.log"
+    volumes:
+      - /var/log/nginx:/var/log/nginx
+      - /var/log/modsecurity:/var/log/modsecurity
+
+  alloy:
+    image: {{ alloy_image }}
+    container_name: alloy
+    restart: unless-stopped
+    network_mode: host
+    user: "0:0"
+    command:
+      - run
+      - --server.http.listen-addr=127.0.0.1:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy:ro
+      - /var/log/nginx:/var/log/nginx:ro
+      - /var/log/modsecurity:/var/log/modsecurity:ro
+      - alloy-data:/var/lib/alloy/data
+
+volumes:
+  alloy-data:
